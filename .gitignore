@@ -38,3 +38,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Node.js (Frontend)
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Python (Backend)
+backend/venv/
+backend/uploads/
+backend/*.pyc
+
