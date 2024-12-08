@@ -5,33 +5,26 @@ import {
   Box,
   Typography,
   Button,
-  ToggleButton,
-  ToggleButtonGroup,
   Dialog,
   DialogContent,
   DialogTitle,
   TextField,
   CircularProgress,
   Alert,
+  Divider,
 } from '@mui/material';
+
 import { CameraAlt as CameraIcon } from '@mui/icons-material';
 
 export default function Home() {
-  const [option, setOption] = useState<string>("Visualise");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [downloadLink, setDownloadLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleOptionChange = (_event: React.MouseEvent<HTMLElement>, newOption: string | null) => {
-    if (newOption === "Convert") {
-      setIsDialogOpen(true); // Open the dialog for Convert
-    }
-    setOption(newOption || "Visualise");
-  };
-
-  // Close down dialog
+  // Open and close dialog
+  const handleDialogOpen = () => setIsDialogOpen(true);
   const handleDialogClose = () => {
     setIsDialogOpen(false);
     setFile(null);
@@ -39,6 +32,7 @@ export default function Home() {
     setError(null);
   };
 
+  // Handle file change
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
@@ -47,6 +41,7 @@ export default function Home() {
     }
   };
 
+  // Handle file upload
   const handleUpload = async () => {
     if (!file) {
       setError('Please upload a file to convert.');
@@ -58,7 +53,8 @@ export default function Home() {
 
     try {
       setIsLoading(true);
-      const response = await fetch('http://insertyourIP/convert', {
+      //TODO: Change to your IP
+      const response = await fetch('http://1xx.x.x.x:5000/convert', {
         method: 'POST',
         body: formData,
       });
@@ -70,7 +66,6 @@ export default function Home() {
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       setDownloadLink(url);
-
     } catch (error) {
       console.error('Error uploading file:', error);
       setError('Failed to process the file. Please try again.');
@@ -105,74 +100,48 @@ export default function Home() {
         }}
       />
 
-      {/* Content */}
-      <Box
-        sx={{
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexDirection: 'column',
-          position: 'relative',
-          zIndex: 2,
-          textAlign: 'center',
-        }}
-      >
-        {/* Toggle Buttons */}
-        <ToggleButtonGroup
-          value={option}
-          exclusive
-          onChange={handleOptionChange}
-          sx={{
-            backgroundColor: '#FFFFFF',
-            borderRadius: 2,
-            p: 0.5,
-            mb: 2,
-            opacity: 0.9,
-          }}
-        >
-          <ToggleButton value="Convert">Convert</ToggleButton>
-          <ToggleButton value="Visualise">Visualise</ToggleButton>
-        </ToggleButtonGroup>
-
-        {/* "Visualise" Placeholder */}
-        {option === "Visualise" && (
-          <Typography
-            sx={{
-              backgroundColor: 'white',
-              borderRadius: 2,
-              p: 2,
-              boxShadow: 3,
-            }}
-          >
-            Please login to continue
-          </Typography>
-        )}
-      </Box>
-
-      {/* Creator Button */}
+      {/* White Box */}
       <Box
         sx={{
           position: 'absolute',
-          bottom: 20,
-          right: 20,
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          backgroundColor: 'white',
+          borderRadius: 2,
+          boxShadow: 3,
+          textAlign: 'center',
+          p: 4,
+          width: '400px',
           zIndex: 2,
         }}
       >
+        <Typography 
+        variant="h5" 
+        sx={{ mb: 2, color: 'text.primary', }}
+        >
+          Welcome to Group E4's Demo
+        </Typography>
+        <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', }}>
+          Pick one of the following options:
+        </Typography>
+
+        {/* Convert File Button */}
         <Button
           variant="contained"
-          startIcon={<CameraIcon />}
-          href="https://unsplash.com/@drwmrk"
-          target="_blank"
-          sx={{
-            backgroundColor: 'rgba(255, 255, 255, 0.8)',
-            color: 'black',
-            '&:hover': {
-              backgroundColor: 'rgba(255, 255, 255, 1)',
-            },
-          }}
+          color="primary"
+          fullWidth
+          onClick={handleDialogOpen}
+          sx={{ mb: 2 }}
         >
-          Andrew Stutesman
+          Convert file to S100 standard
+        </Button>
+
+        <Divider sx={{ mb: 2, color: 'InfoText' }}>OR</Divider>
+
+        {/* Visualiser Button */}
+        <Button variant="outlined" color="primary" fullWidth>
+          Login to view visualiser
         </Button>
       </Box>
 
@@ -214,6 +183,31 @@ export default function Home() {
           )}
         </DialogContent>
       </Dialog>
+      {/* Acknowledgment Button */}
+      <Box
+        sx={{
+          position: 'absolute',
+          bottom: 20,
+          right: 20,
+          zIndex: 2,
+        }}
+      >
+        <Button
+          variant="contained"
+          startIcon={<CameraIcon />} // Add the camera icon
+          href="https://unsplash.com/@drwmrk"
+          target="_blank"
+          sx={{
+            backgroundColor: 'rgba(255, 255, 255, 0.8)',
+            color: 'black',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 255, 255, 1)',
+            },
+          }}
+        >
+          Andrew Stutesman
+        </Button>
+      </Box>
     </Box>
   );
 }
