@@ -49,13 +49,15 @@ export default function DashboardPage() {
   // For "Remove line" dialog, store which line to remove
   const [lineToRemove, setLineToRemove] = useState<string>("");
 
-  // For "Add line" dialog, store input fields
+  // For "Add line" dialog, store main input fields
   const [lineName, setLineName] = useState("");
   const [description, setDescription] = useState("");
-  const [startLat, setStartLat] = useState("");
-  const [startLng, setStartLng] = useState("");
-  const [endLat, setEndLat] = useState("");
-  const [endLng, setEndLng] = useState("");
+
+  // Points array (minimum of 2 points)
+  const [points, setPoints] = useState<{ lat: string; lng: string }[]>([
+    { lat: "", lng: "" },
+    { lat: "", lng: "" },
+  ]);
 
   // Toggle drawer
   const toggleDrawer = (open: boolean) => () => {
@@ -68,10 +70,11 @@ export default function DashboardPage() {
     setError(null);
     setLineName("");
     setDescription("");
-    setStartLat("");
-    setStartLng("");
-    setEndLat("");
-    setEndLng("");
+    // Reset to exactly 2 points as a minimum
+    setPoints([
+      { lat: "", lng: "" },
+      { lat: "", lng: "" },
+    ]);
     setAddDialogOpen(true);
   };
 
@@ -79,34 +82,56 @@ export default function DashboardPage() {
     setAddDialogOpen(false);
   };
 
+  // Add an extra point
+  const handleAddPoint = () => {
+    setPoints((prev) => [...prev, { lat: "", lng: "" }]);
+  };
+
+  // Remove a point if we have more than 2
+  const handleRemovePoint = (index: number) => {
+    if (points.length <= 2) return; // Minimum of 2
+    setPoints((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Update lat/lng for a specific point
+  const handlePointChange = (index: number, field: "lat" | "lng", value: string) => {
+    setPoints((prev) =>
+      prev.map((point, i) =>
+        i === index ? { ...point, [field]: value } : point
+      )
+    );
+  };
+
   const handleAddLine = () => {
-    // Validate input
-    if (!lineName || !description || !startLat || !startLng || !endLat || !endLng) {
-      setError("All fields are required!");
+    // Validate name/description
+    if (!lineName || !description) {
+      setError("Please provide a Line Name and Description.");
       return;
     }
-
-    // Convert strings to numbers
-    const lat1 = parseFloat(startLat);
-    const lng1 = parseFloat(startLng);
-    const lat2 = parseFloat(endLat);
-    const lng2 = parseFloat(endLng);
-
-    // Basic input checks
-    if (isNaN(lat1) || isNaN(lng1) || isNaN(lat2) || isNaN(lng2)) {
-      setError("Invalid latitude/longitude values.");
-      return;
+    // Validate points (each lat/lng must be present and numeric)
+    for (let i = 0; i < points.length; i++) {
+      const { lat, lng } = points[i];
+      if (!lat || !lng) {
+        setError(`All lat/lng fields must be filled (Point #${i + 1}).`);
+        return;
+      }
+      if (isNaN(Number(lat)) || isNaN(Number(lng))) {
+        setError(`Invalid lat/lng value (Point #${i + 1}).`);
+        return;
+      }
     }
 
-    // Create a new line
+    // Convert to numeric arrays
+    const coordinates = points.map((p) => [
+      parseFloat(p.lat),
+      parseFloat(p.lng),
+    ]);
+
     const newLine: CableLine = {
-      id: `${Date.now()}`, // simplistic unique ID
+      id: String(Date.now()), // simplistic unique ID
       name: lineName,
-      coordinates: [
-        [lat1, lng1],
-        [lat2, lng2],
-      ],
       description,
+      coordinates, // e.g., [[lat1, lng1],[lat2, lng2],[lat3, lng3]...]
     };
 
     // Update state
@@ -137,28 +162,25 @@ export default function DashboardPage() {
   return (
     <div className="relative w-full h-screen">
       {/* Top-right corner user icon */}
-        <div className="absolute top-2 right-2 z-[1000]">
-            <IconButton
-                onClick={toggleDrawer(true)}
-                sx={{ color: 'black' }}
-            >
-                <PersonIcon />
-            </IconButton>
-        </div>
+      <div className="absolute top-2 right-2 z-[1000]">
+        <IconButton onClick={toggleDrawer(true)} sx={{ color: "black" }}>
+          <PersonIcon />
+        </IconButton>
+      </div>
 
       {/* Drawer on the right side */}
       <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
         <List sx={{ width: 250 }}>
-            <ListItem disablePadding>
-                <ListItemButton onClick={openAddDialog}>
-                    <ListItemText primary="Add a new line" />
-                </ListItemButton>
-            </ListItem>
-            <ListItem disablePadding>
-                <ListItemButton onClick={openRemoveDialog}>
-                    <ListItemText primary="Remove a line" />
-                </ListItemButton>
-            </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={openAddDialog}>
+              <ListItemText primary="Add a new line" />
+            </ListItemButton>
+          </ListItem>
+          <ListItem disablePadding>
+            <ListItemButton onClick={openRemoveDialog}>
+              <ListItemText primary="Remove a line" />
+            </ListItemButton>
+          </ListItem>
         </List>
       </Drawer>
 
@@ -169,7 +191,11 @@ export default function DashboardPage() {
       <Dialog open={addDialogOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
         <DialogTitle>Add a New Line</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           <TextField
             label="Line Name"
             value={lineName}
@@ -184,34 +210,41 @@ export default function DashboardPage() {
             fullWidth
             sx={{ mb: 2 }}
           />
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <TextField
-              label="Start Lat"
-              value={startLat}
-              onChange={(e) => setStartLat(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="Start Lng"
-              value={startLng}
-              onChange={(e) => setStartLng(e.target.value)}
-              fullWidth
-            />
-          </div>
-          <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
-            <TextField
-              label="End Lat"
-              value={endLat}
-              onChange={(e) => setEndLat(e.target.value)}
-              fullWidth
-            />
-            <TextField
-              label="End Lng"
-              value={endLng}
-              onChange={(e) => setEndLng(e.target.value)}
-              fullWidth
-            />
-          </div>
+
+          {/* Dynamic Points */}
+          {points.map((point, index) => (
+            <div
+              key={index}
+              style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}
+            >
+              <TextField
+                label={`Lat (Point #${index + 1})`}
+                value={point.lat}
+                onChange={(e) => handlePointChange(index, "lat", e.target.value)}
+                fullWidth
+              />
+              <TextField
+                label={`Lng (Point #${index + 1})`}
+                value={point.lng}
+                onChange={(e) => handlePointChange(index, "lng", e.target.value)}
+                fullWidth
+              />
+              {points.length > 2 && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleRemovePoint(index)}
+                >
+                  X
+                </Button>
+              )}
+            </div>
+          ))}
+
+          <Button variant="outlined" onClick={handleAddPoint} sx={{ mb: 2 }}>
+            Add Another Point
+          </Button>
+
           <Button
             variant="contained"
             color="primary"
@@ -228,7 +261,11 @@ export default function DashboardPage() {
       <Dialog open={removeDialogOpen} onClose={closeRemoveDialog} fullWidth maxWidth="sm">
         <DialogTitle>Remove a Line</DialogTitle>
         <DialogContent>
-          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+          {error && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {error}
+            </Alert>
+          )}
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel id="line-select-label">Select Line</InputLabel>
             <Select
