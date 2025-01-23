@@ -112,11 +112,11 @@ export default function DashboardPage() {
   };
 
   // West logic
-  function computeLongitude(
+  const computeLongitude = (
     val: number,
     dir: "E" | "W",
     prevLng: number | null
-  ): number {
+  ): number => {
     if (dir === "E") return val;
     // W
     const a = -val;
