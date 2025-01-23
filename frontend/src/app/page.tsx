@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Box,
   Typography,
@@ -140,9 +141,11 @@ export default function Home() {
         <Divider sx={{ mb: 2, color: 'InfoText' }}>OR</Divider>
 
         {/* Visualiser Button */}
-        <Button variant="outlined" color="primary" fullWidth>
-          Login to view visualiser
-        </Button>
+        <Link href="/dashboard">
+          <Button variant="outlined" color="primary" fullWidth>
+            Login to view visualiser
+          </Button>
+        </Link>
       </Box>
 
       {/* Dialog for File Converter */}
