@@ -10,6 +10,7 @@ import {
   Popup,
   useMap,
 } from "react-leaflet";
+import MaritimeZones from "../MaritimeZones";
 import L, { LatLngExpression } from "leaflet";
 
 import "leaflet/dist/leaflet.css";
@@ -59,6 +60,7 @@ function lineIntersection2D(
   return null;
 }
 
+// In your MapDashboard component
 export default function MapDashboard({ lines }: MapProps) {
   return (
     <MapContainer
@@ -71,6 +73,11 @@ export default function MapDashboard({ lines }: MapProps) {
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         attribution="&copy; OpenStreetMap contributors"
       />
+      
+      {/* Add Maritime Zones with correct path */}
+      <MaritimeZones url="/data/eez.geojson" /> {/* Relative path from public folder */}
+
+      {/* Cable lines */}
       {lines.map((line) => (
         <Polyline
           key={line.id}
@@ -78,14 +85,12 @@ export default function MapDashboard({ lines }: MapProps) {
           pathOptions={{ color: "blue", weight: 3 }}
         >
           <Tooltip sticky>
-            {/* Show system name or other info */}
             {line.systemName}
             {line.cableOwner && <div>Owner: {line.cableOwner}</div>}
           </Tooltip>
         </Polyline>
       ))}
 
-      {/* Separate component to find and render intersections */}
       <IntersectionMarkers lines={lines} />
     </MapContainer>
   );
