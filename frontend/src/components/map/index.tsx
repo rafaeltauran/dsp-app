@@ -68,6 +68,8 @@ export default function MapDashboard({ lines }: MapProps) {
       zoom={2}
       preferCanvas={true}
       scrollWheelZoom
+      maxZoom={8}  // ← Add reasonable limits
+      minZoom={2}
       style={{ width: "100%", height: "100%" }}
     >
       <TileLayer
