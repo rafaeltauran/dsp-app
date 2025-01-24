@@ -66,6 +66,7 @@ export default function MapDashboard({ lines }: MapProps) {
     <MapContainer
       center={[20, 0]}
       zoom={2}
+      preferCanvas={true}
       scrollWheelZoom
       style={{ width: "100%", height: "100%" }}
     >
@@ -75,7 +76,7 @@ export default function MapDashboard({ lines }: MapProps) {
       />
       
       {/* Add Maritime Zones with correct path */}
-      <MaritimeZones url="/data/eez.geojson" /> {/* Relative path from public folder */}
+      <MaritimeZones /> {/* Relative path from public folder */}
 
       {/* Cable lines */}
       {lines.map((line) => (

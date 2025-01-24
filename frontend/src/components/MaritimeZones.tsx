@@ -5,60 +5,68 @@ import { useEffect } from "react";
 import L from "leaflet";
 import { useMap } from "react-leaflet";
 
-interface MaritimeZonesProps {
+interface MaritimeLayer {
   url: string;
+  name: string;
+  style: L.PathOptions;
 }
 
-export default function MaritimeZones({ url }: MaritimeZonesProps) {
+export default function MaritimeZones() {
   const map = useMap();
+
+  const maritimeLayers: MaritimeLayer[] = [
+    {
+      url: "/data/eez_simple.geojson",
+      name: "EEZ (200NM)",
+      style: {
+        color: "#0066ff",
+        weight: 1,  // Reduced from 2
+        opacity: 0.7
+      }
+    },
+    {
+      url: "/data/24NM_simple.geojson",
+      name: "Contiguous Zone (24NM)",
+      style: {
+        color: "#ff9900",
+        weight: 1,  // Reduced from 1.5
+        dashArray: "5,5",
+        opacity: 0.7
+      }
+    },
+    {
+      url: "/data/12NM_simple.geojson",
+      name: "Territorial Waters (12NM)",
+      style: {
+        color: "#00cc66",
+        weight: 1,  // Reduced from 1.5
+        dashArray: "3,3",
+        opacity: 0.7
+      }
+    }
+  ];
 
   useEffect(() => {
     if (!map) return;
 
-    fetch(url)
-      .then((response) => response.json())
-      .then((data) => {
-        const maritimeLayer = L.geoJSON(data, {
-          // Add this filter to exclude "Straight baseline" boundaries
-          filter: (feature) => {
-            return feature?.properties?.LINE_TYPE !== "Straight baseline";
-          },
-          style: (feature) => {
-            const lineType = feature?.properties?.LINE_TYPE;
-            return {
-              color: lineType === 'Treaty' ? '#0066ff' : '#ff4444',
-              weight: 2,
-              dashArray: lineType === 'Unsettled' ? '5,5' : undefined,
-              opacity: 0.7
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const props = feature.properties;
-            if (props) {
-              const popupContent = `
-                <div style="font-size: 14px">
-                  <b>${props.LINE_NAME}</b><br>
-                  <em>${props.LINE_TYPE}</em><br>
-                  Between: ${props.TERRITORY1} & ${props.TERRITORY2}<br>
-                  Length: ${props.LENGTH_KM} km<br>
-                  ${props.SOURCE1 ? `<a href="${props.URL1}" target="_blank">Source</a>` : ''}
-                </div>
-              `;
-              layer.bindPopup(popupContent);
-            }
-          }
-        }).addTo(map);
+    const layerGroup = L.layerGroup().addTo(map);
 
-        const overlayMaps = {
-          "Maritime Boundaries": maritimeLayer
-        };
-        L.control.layers(null, overlayMaps).addTo(map);
+    maritimeLayers.forEach((layerConfig) => {
+      fetch(layerConfig.url)
+        .then((res) => res.json())
+        .then((data) => {
+          L.geoJSON(data, {
+            style: layerConfig.style,
+            interactive: false,  // ← Disable mouse events
+            pmIgnore: true       // ← If using leaflet.pm
+          }).addTo(layerGroup);
+        });
+    });
 
-        return () => {
-          map.removeLayer(maritimeLayer);
-        };
-      });
-  }, [map, url]);
+    return () => {
+      layerGroup.remove();
+    };
+  }, [map]);
 
   return null;
 }
