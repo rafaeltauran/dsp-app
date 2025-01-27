@@ -150,7 +150,84 @@ def create_hdf5(file_name, df, metadata):
                 pos_group = route_position_list.create_group(f"Position_{int(row['Pos No.'])}")
                 pos_group.attrs['Comments'] = row['Comments']
 
+@convert.route('/loadh5', methods=['POST'])
+def load_h5_file():
+    """
+    Upload an HDF5 file and extract relevant lat/lng data and cable name.
+    Returns JSON:
+      {
+        "cableSystemName": "...",
+        "points": [
+          {"latDeg":"12.3456","latDir":"N","lngDeg":"123.4567","lngDir":"E"},
+          ...
+        ]
+      }
+    """
+    file = request.files.get('file')
+    if not file:
+        return jsonify({"error": "No file provided"}), 400
 
+    if not file.filename.lower().endswith('.h5'):
+        return jsonify({"error": "Only .h5 files are supported"}), 400
+
+    file_path = os.path.join(UPLOAD_FOLDER, file.filename)
+    file.save(file_path)
+
+    try:
+        with h5py.File(file_path, 'r') as hdf:
+            # Extract cable system name from root attribute
+            cable_name = hdf.attrs.get('CableSystemName', 'Unknown').decode('utf-8') \
+                if isinstance(hdf.attrs.get('CableSystemName'), bytes) else hdf.attrs.get('CableSystemName', 'Unknown')
+
+            # Our data is presumably in "Group_Data/Route_Position_List"
+            rpl = hdf['Group_Data']['Route_Position_List']
+
+            lat_degs = rpl['Latitude_Degrees'][:]
+            lat_dirs = rpl['Latitude_Direction'][:]
+            lng_degs = rpl['Longitude_Degrees'][:]
+            lng_dirs = rpl['Longitude_Direction'][:]
+
+            # Convert from byte strings to normal strings if needed
+            lat_dirs_str = [d.decode('utf-8') if isinstance(d, bytes) else str(d) for d in lat_dirs]
+            lng_dirs_str = [d.decode('utf-8') if isinstance(d, bytes) else str(d) for d in lng_dirs]
+
+            # Build a list of points
+            points_list = []
+            for i in range(len(lat_degs)):
+                # Format lat/lng as "MM.MMMM"
+                lat_str = f"{lat_degs[i]:06.4f}"
+                lng_str = f"{lng_degs[i]:06.4f}"
+
+                # Directions (N|S, E|W)
+                lat_dir = "N"
+                if lat_dirs_str[i].upper().startswith('S'):
+                    lat_dir = "S"
+
+                lng_dir = "E"
+                if lng_dirs_str[i].upper().startswith('W'):
+                    lng_dir = "W"
+
+                points_list.append({
+                    "latDeg": lat_str,
+                    "latDir": lat_dir,
+                    "lngDeg": lng_str,
+                    "lngDir": lng_dir
+                })
+
+        return jsonify({
+            "cableSystemName": cable_name,
+            "points": points_list
+        }), 200
+
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to read HDF5: {str(e)}"}), 500
+
+    finally:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+            
 @convert.route('/convert', methods=['POST'])
 def convert_file():
     # 1) Grab the uploaded file
@@ -175,6 +252,7 @@ def convert_file():
 
         # 4) Create the HDF5
         create_hdf5(hdf5_path, df, metadata)
+
 
         # 5) Return the HDF5 as an attachment
         return send_file(
