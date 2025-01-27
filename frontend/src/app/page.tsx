@@ -24,7 +24,7 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Open and close dialog
+  // Open/close the dialog
   const handleDialogOpen = () => setIsDialogOpen(true);
   const handleDialogClose = () => {
     setIsDialogOpen(false);
@@ -33,7 +33,7 @@ export default function Home() {
     setError(null);
   };
 
-  // Handle file change
+  // Handle file input
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files[0]) {
       setFile(event.target.files[0]);
@@ -42,20 +42,26 @@ export default function Home() {
     }
   };
 
-  // Handle file upload
+  // Upload to Flask backend, receive HDF5
   const handleUpload = async () => {
     if (!file) {
-      setError('Please upload a file to convert.');
+      setError('Please upload an Excel file.');
       return;
     }
 
-    const formData = new FormData();
-    formData.append('file', file);
+    // We only allow .xlsx
+    if (!file.name.toLowerCase().endsWith('.xlsx')) {
+      setError('Only .xlsx files are accepted.');
+      return;
+    }
 
     try {
       setIsLoading(true);
-      //TODO: Change to your IP
-      const response = await fetch('http://1xx.x.x.x:5000/convert', {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Replace with your Flask server IP/URL
+      const response = await fetch('http://127.0.0.1:5000/convert', {
         method: 'POST',
         body: formData,
       });
@@ -64,12 +70,13 @@ export default function Home() {
         throw new Error('Failed to process the file.');
       }
 
+      // We expect the backend to return an .h5 file
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       setDownloadLink(url);
     } catch (error) {
       console.error('Error uploading file:', error);
-      setError('Failed to process the file. Please try again.');
+      setError('Failed to convert the Excel file. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -117,17 +124,13 @@ export default function Home() {
           zIndex: 2,
         }}
       >
-        <Typography 
-        variant="h5" 
-        sx={{ mb: 2, color: 'text.primary', }}
-        >
+        <Typography variant="h5" sx={{ mb: 2 }}>
           Welcome to Group E4's Demo
         </Typography>
-        <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary', }}>
+        <Typography variant="body1" sx={{ mb: 4 }}>
           Pick one of the following options:
         </Typography>
 
-        {/* Convert File Button */}
         <Button
           variant="contained"
           color="primary"
@@ -138,9 +141,9 @@ export default function Home() {
           Convert file to S100 standard
         </Button>
 
-        <Divider sx={{ mb: 2, color: 'InfoText' }}>OR</Divider>
+        <Divider sx={{ mb: 2 }}>OR</Divider>
 
-        {/* Visualiser Button */}
+        {/* Link to your dashboard */}
         <Link href="/dashboard">
           <Button variant="outlined" color="primary" fullWidth>
             Login to view visualiser
@@ -157,13 +160,15 @@ export default function Home() {
               {error}
             </Alert>
           )}
+
           <TextField
             type="file"
-            inputProps={{ accept: '.xlsx,.csv' }}
+            inputProps={{ accept: '.xlsx' }}
             onChange={handleFileChange}
             fullWidth
             sx={{ mb: 2 }}
           />
+
           <Button
             variant="contained"
             onClick={handleUpload}
@@ -173,19 +178,21 @@ export default function Home() {
           >
             {isLoading ? <CircularProgress size={24} color="inherit" /> : 'Upload & Convert'}
           </Button>
+
           {downloadLink && (
             <Button
               variant="contained"
               color="success"
               fullWidth
               href={downloadLink}
-              download="converted_file.csv"
+              download="converted_file.h5"
             >
-              Download File
+              Download Converted HDF5
             </Button>
           )}
         </DialogContent>
       </Dialog>
+
       {/* Acknowledgment Button */}
       <Box
         sx={{
@@ -197,7 +204,7 @@ export default function Home() {
       >
         <Button
           variant="contained"
-          startIcon={<CameraIcon />} // Add the camera icon
+          startIcon={<CameraIcon />}
           href="https://unsplash.com/@drwmrk"
           target="_blank"
           sx={{

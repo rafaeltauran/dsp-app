@@ -10,7 +10,7 @@ import {
   Popup,
   useMap,
 } from "react-leaflet";
-import MaritimeZones from "../MaritimeZones";
+import MaritimeZones from "../maritimeZones";
 import L, { LatLngExpression } from "leaflet";
 
 import "leaflet/dist/leaflet.css";
