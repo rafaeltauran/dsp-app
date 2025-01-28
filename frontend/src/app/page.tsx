@@ -124,7 +124,7 @@ export default function Home() {
           zIndex: 2,
         }}
       >
-        <Typography variant="h5" sx={{ mb: 2 }}>
+        <Typography variant="h5" sx={{ mb: 2, color: 'blue' }}>
           Welcome to Group E4's Demo
         </Typography>
         <Typography variant="body1" sx={{ mb: 4 }}>
@@ -147,6 +147,13 @@ export default function Home() {
         <Link href="/dashboard">
           <Button variant="outlined" color="primary" fullWidth>
             Login to view visualiser
+          </Button>
+        </Link>
+
+        {/* Link to the documentation */}
+        <Link href="/documentation">
+          <Button variant="outlined" color="primary" fullWidth>
+            View Documentation
           </Button>
         </Link>
       </Box>

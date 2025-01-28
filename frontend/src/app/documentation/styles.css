@@ -1,0 +1,24 @@
+.container {
+    background-color: #ffffff; 
+  }
+
+  h1 {
+    color: #f92048;
+  }
+
+  h2 {
+    color: #2200ff;
+  }
+
+  p {
+    color: #000000;
+  }
+
+  li {
+    color: #000000;
+  }
+  
+  .border {
+    border-color: #007acc;
+  }
+  
