@@ -22,79 +22,65 @@ import {
 } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 
-/** Each user-entered point has lat/lng plus directions and optional segment name */
-interface PointInput {
-  latDeg: string;    // e.g. "12.3456"
-  latDir: "N" | "S"; // North or South
-  lngDeg: string;    // e.g. "123.4567"
-  lngDir: "E" | "W"; // East or West
-  segmentName?: string;
-}
+// Import from map/index.tsx
+import { PointInput, CableLine } from "@/components/map";
 
-/** Our cable line data structure passed to the map */
-export interface CableLine {
-  id: string;
-  systemName: string;
-  cableOwner?: string;
-  coordinates: [number, number][]; // array of lat-lng
-  segmentNames?: string[];
-}
-
-// Dynamically import the map to ensure Leaflet runs on the client side
+/** 
+ * Dashboard Page 
+ * - Manually add lines 
+ * - Remove lines 
+ * - Load from H5 
+ */
 const MapDashboard = dynamic(() => import("@/components/map/"), {
   ssr: false,
   loading: () => <p>Loading map...</p>,
 });
 
 export default function DashboardPage() {
-  // State storing all cables
+  // All cables
   const [lines, setLines] = useState<CableLine[]>([]);
 
-  // Drawer for user icon
+  // Drawer
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Dialog states
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [removeDialogOpen, setRemoveDialogOpen] = useState(false);
+  const [loadH5DialogOpen, setLoadH5DialogOpen] = useState(false);
 
-  // Error handling
+  // Error
   const [error, setError] = useState<string | null>(null);
 
-  // For removing lines
+  // Removing lines
   const [lineToRemove, setLineToRemove] = useState("");
 
-  // For adding lines
+  // Adding lines
   const [systemName, setSystemName] = useState("");
-  const [cableOwner, setCableOwner] = useState("");
 
-  // Minimum 2 points
+  // Minimum 2 points for manual addition
   const [points, setPoints] = useState<PointInput[]>([
     { latDeg: "", latDir: "N", lngDeg: "", lngDir: "E" },
     { latDeg: "", latDir: "N", lngDeg: "", lngDir: "E" },
   ]);
 
-  // Drawer toggle
-  const toggleDrawer = (open: boolean) => () => {
-    setDrawerOpen(open);
-  };
+  // For uploading .h5
+  const [h5File, setH5File] = useState<File | null>(null);
 
-  /* --------------------------------------------
-          ADD LINE LOGIC
-  -------------------------------------------- */
+  // Drawer toggle
+  const toggleDrawer = (open: boolean) => () => setDrawerOpen(open);
+
+  /* -------------- ADD LINE LOGIC -------------- */
   const openAddDialog = () => {
     setError(null);
     setSystemName("");
-    setCableOwner("");
     setPoints([
       { latDeg: "", latDir: "N", lngDeg: "", lngDir: "E" },
       { latDeg: "", latDir: "N", lngDeg: "", lngDir: "E" },
     ]);
     setAddDialogOpen(true);
   };
-
   const closeAddDialog = () => setAddDialogOpen(false);
 
-  // Add an extra point
   const handleAddPoint = () => {
     setPoints((prev) => [
       ...prev,
@@ -102,20 +88,21 @@ export default function DashboardPage() {
     ]);
   };
 
-  // Remove a point if we have more than 2
-  const handleRemovePoint = (index: number) => {
+  const handleRemovePoint = (idx: number) => {
     if (points.length <= 2) return;
-    setPoints((prev) => prev.filter((_, i) => i !== index));
+    setPoints((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  // Update a single field in the points array
-  const handlePointChange = (index: number, field: keyof PointInput, value: string) => {
+  const handlePointChange = (
+    index: number,
+    field: keyof PointInput,
+    value: string
+  ) => {
     setPoints((prev) =>
       prev.map((pt, i) => (i === index ? { ...pt, [field]: value } : pt))
     );
   };
 
-  // Basic check for "MM.MMMM" within [0..180]
   const isValidCoordinate = (val: string) => {
     const match = val.match(/^(\d{1,3})\.(\d{4})$/);
     if (!match) return false;
@@ -123,14 +110,17 @@ export default function DashboardPage() {
     return num >= 0 && num <= 180;
   };
 
-  // The special West logic
-  const computeLongitude = (val: number, dir: "E" | "W", prevLng: number | null): number => {
+  // The special "West" logic
+  const computeLongitude = (
+    val: number,
+    dir: "E" | "W",
+    prevLng: number | null
+  ) => {
     if (dir === "E") return val;
-    // if West:
     const a = -val;
     const b = 360 - val;
     if (prevLng == null) {
-      return a; // default if first point
+      return a;
     }
     const diffA = Math.abs(prevLng - a);
     const diffB = Math.abs(prevLng - b);
@@ -138,64 +128,67 @@ export default function DashboardPage() {
   };
 
   const handleAddLine = () => {
-    // 1) Validate system name
     if (!systemName) {
       setError("System name is required.");
       return;
     }
-    // 2) Validate points
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
       if (!isValidCoordinate(p.latDeg)) {
-        setError(`Invalid latitude '${p.latDeg}' at point #${i + 1}. Must be in [0..180] with 4 decimals.`);
+        setError(
+          `Invalid latitude '${p.latDeg}' at point #${i + 1}. Must be [0..180] with 4 decimals.`
+        );
         return;
       }
       if (!isValidCoordinate(p.lngDeg)) {
-        setError(`Invalid longitude '${p.lngDeg}' at point #${i + 1}. Must be in [0..180] with 4 decimals.`);
+        setError(
+          `Invalid longitude '${p.lngDeg}' at point #${i + 1}. Must be [0..180] with 4 decimals.`
+        );
         return;
       }
     }
 
-    // 3) Convert to numeric lat-lng
     let prevLng: number | null = null;
     const coords: [number, number][] = [];
+
     for (let i = 0; i < points.length; i++) {
       let latVal = parseFloat(points[i].latDeg);
-      let lngVal = parseFloat(points[i].lngDeg);
-
-      // If south, negative lat
       if (points[i].latDir === "S") {
         latVal = -latVal;
       }
 
-      // West logic
-      lngVal = computeLongitude(lngVal, points[i].lngDir, prevLng);
+      let lngVal = parseFloat(points[i].lngDeg);
+      if (points[i].lngDir === "W") {
+        const a = -lngVal;
+        const b = 360 - lngVal;
+        if (prevLng == null) {
+          lngVal = a;
+        } else {
+          const diffA = Math.abs(prevLng - a);
+          const diffB = Math.abs(prevLng - b);
+          lngVal = diffA < diffB ? a : b;
+        }
+      }
       coords.push([latVal, lngVal]);
       prevLng = lngVal;
     }
 
-    // 4) Create new line
     const newLine: CableLine = {
       id: String(Date.now()),
       systemName,
-      cableOwner: cableOwner || undefined,
       coordinates: coords,
     };
 
-    // 5) Add to state
     setLines((prev) => [...prev, newLine]);
     closeAddDialog();
   };
 
-  /* --------------------------------------------
-         REMOVE LINE LOGIC
-  -------------------------------------------- */
+  /* -------------- REMOVE LINE LOGIC -------------- */
   const openRemoveDialog = () => {
     setError(null);
     setLineToRemove("");
     setRemoveDialogOpen(true);
   };
-
   const closeRemoveDialog = () => setRemoveDialogOpen(false);
 
   const handleRemoveLine = () => {
@@ -207,26 +200,119 @@ export default function DashboardPage() {
     closeRemoveDialog();
   };
 
+  /* -------------- LOAD H5 LOGIC -------------- */
+  const openLoadH5Dialog = () => {
+    setError(null);
+    setH5File(null);
+    setLoadH5DialogOpen(true);
+  };
+  const closeLoadH5Dialog = () => {
+    setError(null);
+    setLoadH5DialogOpen(false);
+    setH5File(null);
+  };
+
+  const handleH5FileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setH5File(e.target.files[0]);
+      setError(null);
+    }
+  };
+
+  const handleLoadH5 = async () => {
+    if (!h5File) {
+      setError("Please select an .h5 file first.");
+      return;
+    }
+    if (!h5File.name.toLowerCase().endsWith(".h5")) {
+      setError("Only .h5 files are supported.");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append("file", h5File);
+
+      // Replace with your actual Flask endpoint
+      const response = await fetch("http://127.0.0.1:5000/loadh5", {
+        method: "POST",
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load .h5. Status: ${response.status}`);
+      }
+      const data = await response.json();
+      // data: { cableSystemName: "...", points: [...] }
+
+      // Convert them to final lat/lng with "South" and "West" logic
+      const cableSystemName = data.cableSystemName || `Cable_${Date.now()}`;
+      let prevLng: number | null = null;
+      const coords: [number, number][] = [];
+
+      data.points.forEach((pt: any) => {
+        // parse numeric
+        let latVal = parseFloat(pt.latDeg);
+        if (pt.latDir === "S") {
+          latVal = -latVal;
+        }
+
+        let lngVal = parseFloat(pt.lngDeg);
+        if (pt.lngDir === "W") {
+          const a = -lngVal;
+          const b = 360 - lngVal;
+          if (prevLng == null) {
+            lngVal = a;
+          } else {
+            const diffA = Math.abs(prevLng - a);
+            const diffB = Math.abs(prevLng - b);
+            lngVal = diffA < diffB ? a : b;
+          }
+        }
+        coords.push([latVal, lngVal]);
+        prevLng = lngVal;
+      });
+
+      const newLine: CableLine = {
+        id: String(Date.now()),
+        systemName: cableSystemName,
+        coordinates: coords,
+      };
+
+      setLines((prev) => [...prev, newLine]);
+      closeLoadH5Dialog();
+    } catch (err: any) {
+      setError(err.message || "Error loading H5 file.");
+    }
+  };
+
   return (
     <div className="relative w-full h-screen">
-      {/* Icon in the top-right corner */}
       <div className="absolute top-2 right-2 z-[1000]">
         <IconButton onClick={toggleDrawer(true)} sx={{ color: "black" }}>
           <PersonIcon />
         </IconButton>
       </div>
 
-      {/* Drawer on the right */}
       <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
         <List sx={{ width: 250 }}>
+          {/* Add line manually */}
           <ListItem disablePadding>
             <ListItemButton onClick={openAddDialog}>
               <ListItemText primary="Add a new line" />
             </ListItemButton>
           </ListItem>
+
+          {/* Remove line */}
           <ListItem disablePadding>
             <ListItemButton onClick={openRemoveDialog}>
               <ListItemText primary="Remove a line" />
+            </ListItemButton>
+          </ListItem>
+
+          {/* Load cable from H5 */}
+          <ListItem disablePadding>
+            <ListItemButton onClick={openLoadH5Dialog}>
+              <ListItemText primary="Load cable from H5" />
             </ListItemButton>
           </ListItem>
         </List>
@@ -239,11 +325,7 @@ export default function DashboardPage() {
       <Dialog open={addDialogOpen} onClose={closeAddDialog} fullWidth maxWidth="sm">
         <DialogTitle>Add a New Cable</DialogTitle>
         <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
           <TextField
             label="System Name"
@@ -252,19 +334,11 @@ export default function DashboardPage() {
             fullWidth
             sx={{ mb: 2 }}
           />
-          <TextField
-            label="Cable Owner (optional)"
-            value={cableOwner}
-            onChange={(e) => setCableOwner(e.target.value)}
-            fullWidth
-            sx={{ mb: 3 }}
-          />
 
-          {/* Points */}
           {points.map((p, idx) => (
             <div key={idx} style={{ border: "1px solid #ddd", padding: "0.5rem", marginBottom: "1rem" }}>
               <strong>Point #{idx + 1}</strong>
-              {/* Latitude row */}
+              {/* Lat row */}
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <TextField
                   label="Lat (MM.MMMM)"
@@ -285,7 +359,7 @@ export default function DashboardPage() {
                 </FormControl>
               </div>
 
-              {/* Longitude row */}
+              {/* Lng row */}
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
                 <TextField
                   label="Lng (MM.MMMM)"
@@ -322,7 +396,6 @@ export default function DashboardPage() {
           <Button variant="outlined" onClick={handleAddPoint}>
             Add Another Point
           </Button>
-
           <Button
             variant="contained"
             color="primary"
@@ -339,11 +412,8 @@ export default function DashboardPage() {
       <Dialog open={removeDialogOpen} onClose={closeRemoveDialog} fullWidth maxWidth="sm">
         <DialogTitle>Remove a Cable</DialogTitle>
         <DialogContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
           <FormControl fullWidth sx={{ mb: 2 }}>
             <InputLabel>Select Cable</InputLabel>
             <Select
@@ -358,8 +428,32 @@ export default function DashboardPage() {
               ))}
             </Select>
           </FormControl>
-          <Button variant="contained" color="error" onClick={handleRemoveLine} fullWidth>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleRemoveLine}
+            fullWidth
+          >
             Remove
+          </Button>
+        </DialogContent>
+      </Dialog>
+
+      {/* Dialog: LOAD H5 */}
+      <Dialog open={loadH5DialogOpen} onClose={closeLoadH5Dialog} fullWidth maxWidth="sm">
+        <DialogTitle>Load Cable from H5</DialogTitle>
+        <DialogContent>
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          <TextField
+            type="file"
+            inputProps={{ accept: ".h5" }}
+            onChange={handleH5FileChange}
+            fullWidth
+            sx={{ mb: 2 }}
+          />
+          <Button variant="contained" onClick={handleLoadH5} fullWidth>
+            Load Cable
           </Button>
         </DialogContent>
       </Dialog>
