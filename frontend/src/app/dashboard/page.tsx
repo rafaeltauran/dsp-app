@@ -111,21 +111,21 @@ export default function DashboardPage() {
   };
 
   // The special "West" logic
-  const computeLongitude = (
-    val: number,
-    dir: "E" | "W",
-    prevLng: number | null
-  ) => {
-    if (dir === "E") return val;
-    const a = -val;
-    const b = 360 - val;
-    if (prevLng == null) {
-      return a;
-    }
-    const diffA = Math.abs(prevLng - a);
-    const diffB = Math.abs(prevLng - b);
-    return diffA < diffB ? a : b;
-  };
+  // const computeLongitude = (
+  //   val: number,
+  //   dir: "E" | "W",
+  //   prevLng: number | null
+  // ) => {
+  //   if (dir === "E") return val;
+  //   const a = -val;
+  //   const b = 360 - val;
+  //   if (prevLng == null) {
+  //     return a;
+  //   }
+  //   const diffA = Math.abs(prevLng - a);
+  //   const diffB = Math.abs(prevLng - b);
+  //   return diffA < diffB ? a : b;
+  // };
 
   const handleAddLine = () => {
     if (!systemName) {
@@ -249,7 +249,7 @@ export default function DashboardPage() {
       let prevLng: number | null = null;
       const coords: [number, number][] = [];
 
-      data.points.forEach((pt: any) => {
+      data.points.forEach((pt: PointInput) => {
         // parse numeric
         let latVal = parseFloat(pt.latDeg);
         if (pt.latDir === "S") {
@@ -280,8 +280,9 @@ export default function DashboardPage() {
 
       setLines((prev) => [...prev, newLine]);
       closeLoadH5Dialog();
-    } catch (err: any) {
-      setError(err.message || "Error loading H5 file.");
+    } catch (err: unknown) {
+      if (err instanceof Error) setError(err.message || "Error loading H5 file.");
+      else setError("Error loading H5 file.");
     }
   };
 

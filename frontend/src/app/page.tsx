@@ -125,7 +125,7 @@ export default function Home() {
         }}
       >
         <Typography variant="h5" sx={{ mb: 2, color: 'blue' }}>
-          Welcome to Group E4's Demo
+          Welcome to the Demo for Group E4
         </Typography>
         <Typography variant="body1" sx={{ mb: 4 }}>
           Pick one of the following options:

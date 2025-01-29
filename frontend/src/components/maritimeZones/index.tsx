@@ -85,8 +85,13 @@ export default function MaritimeZones() {
         });
     });
 
-    // Add layer control
-    const layerControl = L.control.layers(null, layerControls, {
+    // // Add layer control
+    // const layerControl = L.control.layers(null, layerControls, {
+    //   collapsed: false,
+    //   position: 'topright'
+    // }).addTo(map);
+
+    const layerControl = L.control.layers({}, layerControls, {
       collapsed: false,
       position: 'topright'
     }).addTo(map);
@@ -95,7 +100,7 @@ export default function MaritimeZones() {
       allLayers.forEach(layer => map.removeLayer(layer));
       map.removeControl(layerControl);
     };
-  }, [map]);
+  }, [maritimeLayers, map]);
 
   return null;
 }
