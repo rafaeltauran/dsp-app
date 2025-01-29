@@ -57,6 +57,8 @@ export default function DashboardPage() {
   // Adding lines
   const [systemName, setSystemName] = useState("");
 
+  const [colour, setColour] = useState("");
+
   // Minimum 2 points for manual addition
   const [points, setPoints] = useState<PointInput[]>([
     { latDeg: "", latDir: "N", lngDeg: "", lngDir: "E" },
@@ -132,6 +134,10 @@ export default function DashboardPage() {
       setError("System name is required.");
       return;
     }
+    if (!colour) {
+      setError("Please select a cable colour.");
+      return;
+    }
     for (let i = 0; i < points.length; i++) {
       const p = points[i];
       if (!isValidCoordinate(p.latDeg)) {
@@ -147,16 +153,16 @@ export default function DashboardPage() {
         return;
       }
     }
-
+  
     let prevLng: number | null = null;
     const coords: [number, number][] = [];
-
+  
     for (let i = 0; i < points.length; i++) {
       let latVal = parseFloat(points[i].latDeg);
       if (points[i].latDir === "S") {
         latVal = -latVal;
       }
-
+  
       let lngVal = parseFloat(points[i].lngDeg);
       if (points[i].lngDir === "W") {
         const a = -lngVal;
@@ -172,13 +178,14 @@ export default function DashboardPage() {
       coords.push([latVal, lngVal]);
       prevLng = lngVal;
     }
-
+  
     const newLine: CableLine = {
       id: String(Date.now()),
       systemName,
       coordinates: coords,
+      colour, // <== Store the selected color here
     };
-
+  
     setLines((prev) => [...prev, newLine]);
     closeAddDialog();
   };
@@ -335,6 +342,22 @@ export default function DashboardPage() {
             fullWidth
             sx={{ mb: 2 }}
           />
+
+<FormControl fullWidth sx={{ mb: 2 }}>
+  <InputLabel>Cable Colour</InputLabel>
+  <Select
+    value={colour}
+    onChange={(e) => setColour(e.target.value)}
+    label="Cable Colour"
+  >
+    <MenuItem value="red">Red</MenuItem>
+    <MenuItem value="blue">Blue</MenuItem>
+    <MenuItem value="green">Green</MenuItem>
+    <MenuItem value="yellow">Yellow</MenuItem>
+    <MenuItem value="black">Black</MenuItem>
+  </Select>
+</FormControl>
+
 
           {points.map((p, idx) => (
             <div key={idx} style={{ border: "1px solid #ddd", padding: "0.5rem", marginBottom: "1rem" }}>

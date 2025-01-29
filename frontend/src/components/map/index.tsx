@@ -34,6 +34,7 @@ export interface CableLine {
   id: string;
   systemName: string;
   coordinates: [number, number][]; // e.g. [[lat, lng], [lat, lng], ...]
+  colour: string;
 }
 
 /** Used internally to store cable-cable intersections */
@@ -105,7 +106,7 @@ export default function MapDashboard({ lines }: MapProps) {
         <Polyline
           key={line.id}
           positions={line.coordinates}
-          pathOptions={{ color: "blue", weight: 3 }}
+          pathOptions={{ color: line.colour, weight: 3 }}
         >
           <Tooltip sticky>{line.systemName}</Tooltip>
         </Polyline>
