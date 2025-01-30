@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import {
   IconButton,
@@ -37,6 +38,7 @@ const MapDashboard = dynamic(() => import("@/components/map/"), {
 });
 
 export default function DashboardPage() {
+  const router = useRouter();
   // All cables
   const [lines, setLines] = useState<CableLine[]>([]);
 
@@ -323,7 +325,15 @@ export default function DashboardPage() {
               <ListItemText primary="Load cable from H5" />
             </ListItemButton>
           </ListItem>
+
+          <ListItem disablePadding>
+          <ListItemButton onClick={() => router.push('/')}>
+            <ListItemText primary="Go back" />
+          </ListItemButton>
+        </ListItem>
+
         </List>
+
       </Drawer>
 
       {/* The Map */}
