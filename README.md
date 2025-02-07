@@ -73,7 +73,7 @@ Ensure you have the following installed before proceeding:
 
 ## Updating the Frontend API URL
 
-1. Open the file `frontend/dashboard/index.tsx`.
+1. Open the file `.../dashboard/index.tsx`.
 2. Locate the line where the backend API URL is set.
 3. Replace the existing IP with the one displayed by Flask when running the backend.
 4. Save the changes and restart the frontend server if necessary.
