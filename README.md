@@ -14,7 +14,7 @@ This project consists of two main parts:
 Ensure you have the following installed before proceeding:
 
 - **Node.js** (Recommended: Latest LTS version)
-- **Yarn** (Recommended for package management)
+- **npm** (If you want to use Yarn or pnpm or bun or deno, that is also ok)
 - **Python 3.10+**
 - **pip** (Python package manager)
 - **Flask** (Python web framework)
