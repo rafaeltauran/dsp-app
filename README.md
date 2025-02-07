@@ -1,5 +1,7 @@
 # Visualizer + Converter
 
+This is our code for the visualiser and converter for Group E4.
+
 ## Project Structure
 
 This project consists of two main parts:
@@ -13,7 +15,7 @@ Ensure you have the following installed before proceeding:
 
 - **Node.js** (Recommended: Latest LTS version)
 - **Yarn** (Recommended for package management)
-- **Python 3.8+**
+- **Python 3.10+**
 - **pip** (Python package manager)
 - **Flask** (Python web framework)
 
@@ -28,13 +30,13 @@ Ensure you have the following installed before proceeding:
 2. Install dependencies:
 
    ```sh
-   yarn install
+   npm install
    ```
 
 3. Start the Next.js development server:
 
    ```sh
-   yarn dev
+   npm run dev
    ```
 
 4. The frontend will be available at `http://localhost:3000` by default.
@@ -64,7 +66,7 @@ Ensure you have the following installed before proceeding:
 4. Run the Flask server:
 
    ```sh
-   flask run --host=0.0.0.0 --port=5000
+   python3 app.py
    ```
 
 5. The backend should now be running. Note the IP address displayed in the terminal.
@@ -76,4 +78,4 @@ Ensure you have the following installed before proceeding:
 3. Replace the existing IP with the one displayed by Flask when running the backend.
 4. Save the changes and restart the frontend server if necessary.
 
-Your application should now be fully functional with both the frontend and backend running properly.
+The application should now be fully functional with both the frontend and backend running properly.
